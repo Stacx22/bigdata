@@ -67,34 +67,25 @@ print(f"RMSE: {test_results.rootMeanSquaredError}")
 print(f"R^2: {test_results.r2}")
 
 # ---- Write metrics to HBase with happybase ----
+import happybase
 
-# Values to store
 rmse_value = str(test_results.rootMeanSquaredError)
 r2_value = str(test_results.r2)
 
-# Connect to HBase
-# Try 'hbase' first; if that fails in your environment, switch back to 'master'
-connection = happybase.Connection('hbase')
+connection = happybase.Connection('hbase')  # use 'master' if that's what works in your env
 connection.open()
-
-# Use your existing HBase table and column family
 table = connection.table('zoo_data')
 
-# Row key where we'll store the metrics
-row_key = b'zoo_metrics1'
-
-# Put RMSE and R2 into cf:rmse and cf:r2
 table.put(
-    row_key,
+    b'zoo_model_metrics',
     {
         b'cf:rmse': rmse_value.encode('utf-8'),
-        b'cf:r2':   r2_value.encode('utf-8')
+        b'cf:r2':   r2_value.encode('utf-8'),
     }
 )
 
 connection.close()
-
-# Step 9: Stop Spark session
 spark.stop()
+
 
 
