@@ -67,23 +67,34 @@ print(f"RMSE: {test_results.rootMeanSquaredError}")
 print(f"R^2: {test_results.r2}")
 
 # ---- Write metrics to HBase with happybase ----
-metrics_data = [
-    ('zoo_metrics1', 'cf:rmse', str(test_results.rootMeanSquaredError)),
-    ('zoo_metrics1', 'cf:r2',   str(test_results.r2)),
-]
 
-def write_to_hbase_partition(partition):
-    connection = happybase.Connection('master')   
-    connection.open()
-    table = connection.table('zoo_data')          
-    for row in partition:
-        row_key, column, value = row
-        table.put(row_key, {column: value.encode('utf-8')})
-    connection.close()
+# Values to store
+rmse_value = str(test_results.rootMeanSquaredError)
+r2_value = str(test_results.r2)
 
-rdd = spark.sparkContext.parallelize(metrics_data)
-rdd.foreachPartition(write_to_hbase_partition)
+# Connect to HBase
+# Try 'hbase' first; if that fails in your environment, switch back to 'master'
+connection = happybase.Connection('hbase')
+connection.open()
+
+# Use your existing HBase table and column family
+table = connection.table('zoo_data')
+
+# Row key where we'll store the metrics
+row_key = b'zoo_metrics1'
+
+# Put RMSE and R2 into cf:rmse and cf:r2
+table.put(
+    row_key,
+    {
+        b'cf:rmse': rmse_value.encode('utf-8'),
+        b'cf:r2':   r2_value.encode('utf-8')
+    }
+)
+
+connection.close()
 
 # Step 9: Stop Spark session
 spark.stop()
+
 
